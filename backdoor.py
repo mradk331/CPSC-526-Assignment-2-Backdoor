@@ -33,6 +33,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                self.request.sendall( bytearray("The supported commands are pwd, cd, cwd, ls, cp, rm, mv, cat, snap, diff", "utf-8"))
 
            if data == "ls":
+			#gotta use popopen!!
 
            print("%s (%s) wrote: %s" % (self.client_address[0],
                  threading.currentThread().getName(), data.strip()))

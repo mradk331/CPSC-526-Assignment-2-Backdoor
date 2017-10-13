@@ -3,10 +3,11 @@ import socket, threading
 import hashlib
 import sys
 import subprocess
-
+import os
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
     BUFFER_SIZE = 4096
+    closeServer = False
 
     def handle(self):
 
@@ -125,6 +126,96 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
                 # Send the string output to the client
                 self.request.sendall(bytearray(uptimeCommand, "utf-8"))
+
+            # If cd command is given without any parameters, display usage error
+            elif data == "cd":
+                self.request.sendall(bytearray("USAGE: cd 'directory'\n", "utf-8"))
+
+            elif data[0:3] == "cd ":
+
+                # Strip any spaces in-between cd and command
+                command = str.strip(data[3:])
+
+                try:
+
+                    # Change the current directory based on the provided argument
+                    os.chdir(command)
+
+                    # Indicate successful cd to client
+                    self.request.sendall(bytearray("Success!\n", "utf-8"))
+
+                except:
+
+                    self.request.sendall(bytearray("cd: " + command + ": No such file or directory\n", "utf-8"))
+                    # If cat command is given without any parameters, display usage error
+
+            elif data == "rm":
+                self.request.sendall(bytearray("USAGE: rm 'file-name'\n", "utf-8"))
+
+            elif data[0:3] == "rm ":
+
+                # Strip any spaces in-between cat and command
+                command = str.strip(data[3:])
+
+                try:
+
+                    # Run a subprocess in shell that returns output of rm into variable
+                    output = subprocess.run(['rm', command], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+                    # Decode the shell command result into a string format
+                    rmCommand = output.stdout.decode("utf-8")
+
+                    # Send the string output to the client
+                    self.request.sendall(bytearray(rmCommand, "utf-8"))
+
+                except:
+
+                    self.request.sendall(bytearray("rm: " + command + ": No such file or directory\n", "utf-8"))
+
+            elif data[0:3] == "cp ":
+
+                # Strip any spaces in-between cat and command
+                command = str.strip(data[3:])
+
+                try:
+
+                    # Run a subprocess in shell that returns output of rm into variable
+                    output = subprocess.run(['rm', command], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+                    # Decode the shell command result into a string format
+                    rmCommand = output.stdout.decode("utf-8")
+
+                    # Send the string output to the client
+                    self.request.sendall(bytearray(rmCommand, "utf-8"))
+
+                except:
+
+                    self.request.sendall(bytearray("rm: " + command + ": No such file or directory\n", "utf-8"))
+
+
+            elif data == "logout":
+
+                #Disconnect the client from the server
+                self.request.sendall(bytearray("You have logged out of the server\n", "utf-8"))
+
+                #Break out of the while loop for the client thread, disconnecting the client
+                break
+
+            elif data == "off":
+                #Set close server flag
+                self.closeServer = True
+                # Break out of while loop, shutting off server
+                break
+
+
+        if self.closeServer == True:
+
+            #Tell the serve_forever() loop to stop (shut down server)
+            server.shutdown()
+
+            #Clean up the server
+            server.server_close()
+
 
 
 

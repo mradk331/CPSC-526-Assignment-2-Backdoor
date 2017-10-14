@@ -8,9 +8,46 @@ import os
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
     BUFFER_SIZE = 4096
+
+    #Hardcoded credentials
+    __USERNAME = "bossy"
+    __PASSCODE = "passycody"
+
+    #Boolean used to close server if user triggers off command
     closeServer = False
 
+
     def handle(self):
+
+        #Handshake (check if user enters correct username and password
+        try:
+
+            self.request.sendall(bytearray("Give me your username!\n", "utf-8"))
+            username = self.request.recv(self.BUFFER_SIZE)
+
+            username = username.decode("utf-8")
+            username = username.strip()
+
+            self.request.sendall(bytearray("Now the password!\n", "utf-8"))
+            password = self.request.recv(self.BUFFER_SIZE)
+
+            password = password.decode("utf-8")
+            password = password.strip()
+
+            if username == self.__USERNAME and password == self.__PASSCODE:
+
+                self.request.sendall(bytearray("SUCCESS!\n", "utf-8"))
+
+            else:
+                self.request.sendall(bytearray("Wrong username or password\n", "utf-8"))
+                quit()
+
+
+        except:
+
+            #Quit current thread if user disconnects without authenticating first (not using logout)
+            quit()
+
 
         while 1:
             data = self.request.recv(self.BUFFER_SIZE)
@@ -298,41 +335,143 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
             elif data == "snap":
 
-                #Remove old snapshot
+                # Remove old snapshot
                 subprocess.run(['rm', "snapshot.txt"], stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT)
 
-                #Open new snapshot file with write permission
-                new_snap = open('snapshot.txt', 'w+')
+                # Open new snapshot file with write permission
+                new_snap = open('snapshot.txt', 'w')
 
-                #Get the current working directory (as string)
+                # Get the current working directory (as string)
                 curr_directory = os.getcwd()
 
-                #For each in the listed current directory, we create a hash digest
+                # For each in the listed current directory, we create a hash digest
                 for file in os.listdir(curr_directory):
 
                     if os.path.isfile(file):
 
-                         #Joins the path of the root directory and file name together and assigns it to current file
-                        #current_file = os.path.join(root_dir, each_file)
-
-                        #Generates an md5 hash algorithm
+                        # Generates an md5 hash algorithm
                         MD5 = hashlib.md5()
 
-                        #Open current the current file as hashable
+                        # Open current the current file as hashable
                         with open(file, 'rb') as hashable:
 
-                            #Update the hash object MD5 with the data read from hashable
+                            # Update the hash object MD5 with the data read from hashable
                             read_in = hashable.read()
                             MD5.update(read_in)
 
-                            #Write filename and digest to new file
-                            new_snap.write(file + " " + MD5.hexdigest() + "\n")
+                            # Write filename and digest to new file
 
+                            if file != 'snapshot.txt':
+                                new_snap.write(file + "\n" + MD5.hexdigest() + "\n")
 
-                        print (file, MD5.hexdigest())
+                        hashable.close()
 
                 new_snap.close()
+
+            elif data == "diff":
+
+                if os.path.isfile("snapshot.txt"):
+
+                    snapshot = []
+
+                    with open('snapshot.txt', 'r') as snapfile:
+                        for line in snapfile:
+
+                            line = line.strip()
+
+                            snapshot.append(line)
+
+                    snapfile.close()
+
+
+                    diffshot = []
+
+                    # Get the current working directory (as string)
+                    curr_directory = os.getcwd()
+
+                    # For each in the listed current directory, we create a hash digest
+                    for file in os.listdir(curr_directory):
+
+                        if os.path.isfile(file):
+
+                            # Generates an md5 hash algorithm
+                            MD5 = hashlib.md5()
+
+                            # Open current the current file as hashable
+                            with open(file, 'rb') as hashable:
+                                # Update the hash object MD5 with the data read from hashable
+                                read_in = hashable.read()
+                                MD5.update(read_in)
+
+                                # save snap in array (filename and hex digest)
+                                if file != 'snapshot.txt':
+                                    diffshot.append(file)
+                                    diffshot.append(MD5.hexdigest())
+
+                            hashable.close()
+
+                    counter = 0
+                    while (counter < len(snapshot)):
+                        print("SNAPSHOT: " + snapshot[counter])
+                        counter+=1
+
+                    counter = 0
+                    while (counter < len(diffshot)):
+                        print("CUMMIES: " + diffshot[counter])
+                        counter+=1
+
+                    #if file is in diffshot, but not snapshot, file is added
+                    #if file is in snapshot, but not diffshot, file is deleted
+                    #if file has different hash, file is modified
+                    outerCounter = 0
+                    while outerCounter < len(diffshot):
+                        innerCounter = 0
+                        while innerCounter < len(snapshot):
+                            if diffshot[outerCounter] == snapshot[innerCounter]:
+                                break
+                            innerCounter = innerCounter + 2
+                            if innerCounter == len(snapshot):
+                                print (diffshot[outerCounter] + ' has been added' + '\n' )
+
+                        outerCounter = outerCounter + 2
+
+
+
+                    outerCounter = 0
+                    while outerCounter < len(snapshot):
+                        innerCounter = 0
+                        while innerCounter < len(diffshot):
+                            if diffshot[innerCounter] == snapshot[outerCounter] \
+                                    and diffshot[innerCounter + 1] != snapshot[outerCounter + 1]:
+
+                                print(diffshot[innerCounter] + ' has been modified' + '\n')
+
+                            innerCounter = innerCounter + 2
+
+                        outerCounter = outerCounter + 2
+
+                    outerCounter = 0
+                    while outerCounter < len(snapshot):
+                        innerCounter = 0
+                        while innerCounter < len(diffshot):
+                            if snapshot[outerCounter] == diffshot[innerCounter]:
+                                break
+                            innerCounter = innerCounter + 2
+                            if innerCounter == len(diffshot):
+                                print(snapshot[outerCounter] + ' has been deleted' + '\n')
+
+                        outerCounter = outerCounter + 2
+
+
+
+
+
+                else:
+
+                    self.request.sendall(bytearray("Error: no snapshot in current directory\n", "utf-8"))
+
+
 
             elif data == "logout":
 
@@ -363,16 +502,3 @@ if __name__ == "__main__":
     PORT = int(sys.argv[1])
     server = socketserver.ThreadingTCPServer((HOST, PORT), MyTCPHandler)
     server.serve_forever()
-
-'''
-f = open( "test.txt", "rb")
-sha = hashlib.sha256()
-while True:
-    data = f.read(4096)
-    if not data:
-        break
-    sha.update(data)
-f.close()
-
-print(sha.hexdigest())
-'''

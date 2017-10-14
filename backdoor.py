@@ -298,6 +298,13 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
             elif data == "snap":
 
+                #Remove old snapshot
+                subprocess.run(['rm', "snapshot.txt"], stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT)
+
+                #Open new snapshot file with write permission
+                new_snap = open('snapshot.txt', 'w+')
+
                 #Get the current working directory (as string)
                 curr_directory = os.getcwd()
 
@@ -305,8 +312,6 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 for file in os.listdir(curr_directory):
 
                     if os.path.isfile(file):
-
-                        print("GOT THROUGH\n")
 
                          #Joins the path of the root directory and file name together and assigns it to current file
                         #current_file = os.path.join(root_dir, each_file)
@@ -321,9 +326,13 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                             read_in = hashable.read()
                             MD5.update(read_in)
 
+                            #Write filename and digest to new file
+                            new_snap.write(file + " " + MD5.hexdigest() + "\n")
 
 
                         print (file, MD5.hexdigest())
+
+                new_snap.close()
 
             elif data == "logout":
 

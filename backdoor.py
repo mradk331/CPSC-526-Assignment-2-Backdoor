@@ -195,6 +195,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 except:
 
                     print("FileNotFoundError")
+                    self.request.sendall(bytearray("Invalid file type. Tried to read: " + argument + "\n", "utf-8"))
+
 
 
             elif data == "who":

@@ -528,11 +528,11 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
 
             elif data == "logout":
-
+               
                 # Disconnect the client from the server
                 self.request.sendall(bytearray("You have logged out of the server.\n", "utf-8"))
 
-                # Break out of the while loop for the client thread, disconnecting the client
+                # Break out of the while loop for the client thread, disconnecting the client  
                 break
 
             elif data == "off":
@@ -541,7 +541,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
                 # Set close server flag for cleanup
                 self.close_server = True
-
+                
                 # Break out of the while loop, shutting off server
                 break
 
@@ -562,6 +562,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             #In the case where socketserver does not respond...
             os._exit(0)
 
+        #Close the client connection
+        self.request.close()
 
 if __name__ == "__main__":
     HOST = "localhost"
